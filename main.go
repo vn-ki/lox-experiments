@@ -6,7 +6,9 @@ import (
 	"log"
 	"os"
 
+	"github.com/vn-ki/go-lox/ast"
 	"github.com/vn-ki/go-lox/lexer"
+	"github.com/vn-ki/go-lox/parser"
 	"github.com/vn-ki/go-lox/token"
 )
 
@@ -25,6 +27,12 @@ func run(src string) error {
 	lexer := lexer.NewLexer(src)
 	tokens := lexer.ScanTokens()
 	logTokens(tokens)
+
+	parser := parser.NewParser(tokens)
+	expr := parser.Parse()
+	if expr != nil {
+		log.Printf("AST: %s", ast.NewAstPrinter().PrintExpr(expr))
+	}
 	return nil
 }
 
