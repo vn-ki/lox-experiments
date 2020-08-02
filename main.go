@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/vn-ki/go-lox/ast"
+	"github.com/vn-ki/go-lox/interpreter"
 	"github.com/vn-ki/go-lox/lexer"
 	"github.com/vn-ki/go-lox/parser"
 	"github.com/vn-ki/go-lox/token"
@@ -30,9 +31,14 @@ func run(src string) error {
 
 	parser := parser.NewParser(tokens)
 	expr := parser.Parse()
+
 	if expr != nil {
 		log.Printf("AST: %s", ast.NewAstPrinter().PrintExpr(expr))
+		interp := interpreter.NewInterpreter()
+		val := interp.Evaluate(expr)
+		log.Printf("Evaluated value: %v\n", val)
 	}
+
 	return nil
 }
 
