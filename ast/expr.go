@@ -1,12 +1,12 @@
 package ast
 
 type Expr interface {
-	accept(ExprVisitor) interface{}
+	Accept(ExprVisitor) interface{}
 }
 
 type ExprVisitor interface {
-	visitBinary(Binary) interface{}
-	visitGrouping(Grouping) interface{}
-	visitLiteral(Literal) interface{}
-	visitUnary(Unary) interface{}
+	VisitBinary(Binary) interface{}
+	VisitGrouping(Grouping) interface{}
+	VisitLiteral(Literal) interface{}
+	VisitUnary(Unary) interface{}
 }
