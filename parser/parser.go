@@ -27,7 +27,7 @@ func (p *Parser) Parse() ([]ast.Stmt, bool) {
 	stmts := make([]ast.Stmt, 0)
 	hadError := false
 	for !p.isAtEnd() {
-		stmt, err := p.statement()
+		stmt, err := p.declaration()
 		if err != nil {
 			if w, ok := err.(parserError); ok {
 				hadError = true
@@ -47,10 +47,15 @@ func (p *Parser) Parse() ([]ast.Stmt, bool) {
 /*
 Grammar
 
-program   → statement* EOF ;
+program     → declaration* EOF ;
 
-statement → exprStmt
-		  | printStmt ;
+declaration → varDecl
+            | statement ;
+
+statement   → exprStmt
+            | printStmt ;
+
+varDecl → "var" IDENTIFIER ( "=" expression )? ";" ;
 
 exprStmt  → expression ";" ;
 printStmt → "print" expression ";" ;
@@ -63,8 +68,36 @@ multiplication → unary ( ( "/" | "*" ) unary )* ;
 unary          → ( "!" | "-" ) unary
 			   | primary ;
 primary        → NUMBER | STRING | "false" | "true" | "nil"
-			   | "(" expression ")" ;
+			   | "(" expression ")"
+			   | IDENTIFIER;
 */
+
+func (p *Parser) declaration() (ast.Stmt, error) {
+	if p.match(token.Tvar) {
+		return p.varDecl()
+	}
+	return p.statement()
+}
+
+func (p *Parser) varDecl() (ast.Stmt, error) {
+	iden := p.peek()
+
+	// consume current token, and confirm it is an identifier
+	err := p.consume(token.Tidentifier, "Expected identifier")
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer ast.Expr
+	if p.match(token.Tequal) {
+		initializer, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return ast.Svar{Name: iden, Expression: initializer}, p.consume(token.Tsemicolon, "Expected a semicolon")
+
+}
 
 func (p *Parser) statement() (ast.Stmt, error) {
 	if p.match(token.Tprint) {
@@ -195,6 +228,9 @@ func (p *Parser) primary() (ast.Expr, error) {
 
 	if p.match(token.Tnumber, token.Tstring) {
 		return ast.Literal{Value: p.previous().Literal}, nil
+	}
+	if p.match(token.Tidentifier) {
+		return ast.Evariable{p.previous()}, nil
 	}
 
 	if p.match(token.TleftParen) {

@@ -24,10 +24,18 @@ func (a AstPrinter) VisitExpression(s Sexpression) interface{} {
 	return a.PrintExpr(s.Expression)
 }
 
+func (a AstPrinter) VisitVar(s Svar) interface{} {
+	return a.parenthesize("var "+s.Name.Lexeme, s.Expression)
+}
+
 // Expression
 
 func (a AstPrinter) PrintExpr(e Expr) string {
 	return e.Accept(a).(string)
+}
+
+func (a AstPrinter) VisitVariable(e Evariable) interface{} {
+	return a.parenthesize("variable " + e.Name.Lexeme)
 }
 
 func (a AstPrinter) VisitBinary(e Binary) interface{} {
