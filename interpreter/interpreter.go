@@ -6,11 +6,13 @@ import (
 	"log"
 
 	"github.com/vn-ki/go-lox/ast"
+	"github.com/vn-ki/go-lox/env"
 	"github.com/vn-ki/go-lox/token"
 )
 
 type Interpreter struct {
 	ErrorHandler func(token token.Token, msg string)
+	env          *env.Environemnt
 }
 
 type runtimeError struct {
@@ -19,7 +21,7 @@ type runtimeError struct {
 }
 
 func NewInterpreter() Interpreter {
-	return Interpreter{nil}
+	return Interpreter{nil, env.NewEnvironment()}
 }
 
 func (i Interpreter) Evaluate(e ast.Expr) interface{} {
@@ -45,6 +47,7 @@ func (i Interpreter) Interpret(stmts []ast.Stmt) {
 		i.execute(stmt)
 	}
 }
+
 func (i Interpreter) execute(s ast.Stmt) {
 	s.Accept(i)
 }
@@ -52,11 +55,31 @@ func (i Interpreter) execute(s ast.Stmt) {
 func (i Interpreter) VisitExpression(s ast.Sexpression) interface{} {
 	return i.Evaluate(s.Expression)
 }
+
+func (i Interpreter) VisitVariable(v ast.Evariable) interface{} {
+	val, ok := i.env.Get(v.Name.Lexeme)
+	if !ok {
+		panic(runtimeError{
+			errors.New(fmt.Sprintf("variable '%s' not defined", v.Name.Lexeme)),
+			v.Name,
+		})
+	}
+	return val
+}
+
+func (i Interpreter) VisitVar(v ast.Svar) interface{} {
+	val := i.Evaluate(v.Expression)
+	log.Printf("defining '%s' with '%v'", v.Name.Lexeme, val)
+	i.env.Define(v.Name.Lexeme, val)
+	return nil
+}
+
 func (i Interpreter) VisitPrint(s ast.Sprint) interface{} {
 	val := i.Evaluate(s.Expression)
 	fmt.Println(val)
 	return nil
 }
+
 func (i Interpreter) checkNumberOperand(op token.Token, operand interface{}) {
 	if _, ok := operand.(float64); !ok {
 		panic(runtimeError{errors.New("the operand should be a number"), op})

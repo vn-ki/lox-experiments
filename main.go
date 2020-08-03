@@ -23,7 +23,7 @@ func logTokens(tokens []token.Token) {
 	}
 }
 
-func run(src string) error {
+func run(src string, interp interpreter.Interpreter) error {
 	log.Printf("src: '%s'\n", src)
 	lexer := lexer.NewLexer(src)
 	tokens := lexer.ScanTokens()
@@ -40,7 +40,6 @@ func run(src string) error {
 		for _, stmt := range expr {
 			log.Printf("AST: %s", ast.NewAstPrinter().PrintStatement(stmt))
 		}
-		interp := interpreter.NewInterpreter()
 		interp.Interpret(expr)
 		// log.Printf("Evaluated value: %v\n", val)
 	}
@@ -54,10 +53,11 @@ func runFile(path string) {
 
 func runREPL() {
 	scanner := bufio.NewScanner(os.Stdin)
+	interp := interpreter.NewInterpreter()
 
 	fmt.Print(">> ")
 	for scanner.Scan() {
-		err := run(scanner.Text())
+		err := run(scanner.Text(), interp)
 		if err != nil {
 			report(err)
 		}
