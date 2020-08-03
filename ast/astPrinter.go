@@ -12,6 +12,20 @@ func NewAstPrinter() AstPrinter {
 	return AstPrinter{}
 }
 
+// Statements
+func (a AstPrinter) PrintStatement(s Stmt) string {
+	return s.Accept(a).(string)
+}
+
+func (a AstPrinter) VisitPrint(s Sprint) interface{} {
+	return a.parenthesize("print", s.Expression)
+}
+func (a AstPrinter) VisitExpression(s Sexpression) interface{} {
+	return a.PrintExpr(s.Expression)
+}
+
+// Expression
+
 func (a AstPrinter) PrintExpr(e Expr) string {
 	return e.Accept(a).(string)
 }

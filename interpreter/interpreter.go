@@ -2,6 +2,7 @@ package interpreter
 
 import (
 	"errors"
+	"fmt"
 	"log"
 
 	"github.com/vn-ki/go-lox/ast"
@@ -22,6 +23,10 @@ func NewInterpreter() Interpreter {
 }
 
 func (i Interpreter) Evaluate(e ast.Expr) interface{} {
+	return e.Accept(i)
+}
+
+func (i Interpreter) Interpret(stmts []ast.Stmt) {
 	defer func() {
 		if r := recover(); r != nil {
 			if re, ok := r.(runtimeError); ok {
@@ -35,9 +40,23 @@ func (i Interpreter) Evaluate(e ast.Expr) interface{} {
 			}
 		}
 	}()
-	return e.Accept(i)
+
+	for _, stmt := range stmts {
+		i.execute(stmt)
+	}
+}
+func (i Interpreter) execute(s ast.Stmt) {
+	s.Accept(i)
 }
 
+func (i Interpreter) VisitExpression(s ast.Sexpression) interface{} {
+	return i.Evaluate(s.Expression)
+}
+func (i Interpreter) VisitPrint(s ast.Sprint) interface{} {
+	val := i.Evaluate(s.Expression)
+	fmt.Println(val)
+	return nil
+}
 func (i Interpreter) checkNumberOperand(op token.Token, operand interface{}) {
 	if _, ok := operand.(float64); !ok {
 		panic(runtimeError{errors.New("the operand should be a number"), op})

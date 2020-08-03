@@ -30,13 +30,19 @@ func run(src string) error {
 	logTokens(tokens)
 
 	parser := parser.NewParser(tokens)
-	expr := parser.Parse()
+	// parserErrOccured := false
+	parser.ErrorHandler = func(tok token.Token, msg string) {
+		fmt.Println("parser error")
+	}
+	expr, hadError := parser.Parse()
 
-	if expr != nil {
-		log.Printf("AST: %s", ast.NewAstPrinter().PrintExpr(expr))
+	if !hadError {
+		for _, stmt := range expr {
+			log.Printf("AST: %s", ast.NewAstPrinter().PrintStatement(stmt))
+		}
 		interp := interpreter.NewInterpreter()
-		val := interp.Evaluate(expr)
-		log.Printf("Evaluated value: %v\n", val)
+		interp.Interpret(expr)
+		// log.Printf("Evaluated value: %v\n", val)
 	}
 
 	return nil

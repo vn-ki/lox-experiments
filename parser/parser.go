@@ -14,19 +14,90 @@ type Parser struct {
 	ErrorHandler func(token.Token, string)
 }
 
+type parserError struct {
+	error
+	tok token.Token
+}
+
 func NewParser(tokens []token.Token) *Parser {
 	return &Parser{tokens, 0, nil}
 }
 
-func (p *Parser) Parse() ast.Expr {
-	expr, err := p.experssion()
-	if err != nil {
-		return nil
+func (p *Parser) Parse() ([]ast.Stmt, bool) {
+	stmts := make([]ast.Stmt, 0)
+	hadError := false
+	for !p.isAtEnd() {
+		stmt, err := p.statement()
+		if err != nil {
+			if w, ok := err.(parserError); ok {
+				hadError = true
+				if p.ErrorHandler != nil {
+					p.ErrorHandler(w.tok, w.Error())
+				}
+			} else {
+				panic(err)
+			}
+			continue
+		}
+		stmts = append(stmts, stmt)
 	}
-	return expr
+	return stmts, hadError
 }
 
-func (p *Parser) experssion() (ast.Expr, error) {
+/*
+Grammar
+
+program   → statement* EOF ;
+
+statement → exprStmt
+		  | printStmt ;
+
+exprStmt  → expression ";" ;
+printStmt → "print" expression ";" ;
+
+expression     → equality ;
+equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+comparison     → addition ( ( ">" | ">=" | "<" | "<=" ) addition )* ;
+addition       → multiplication ( ( "-" | "+" ) multiplication )* ;
+multiplication → unary ( ( "/" | "*" ) unary )* ;
+unary          → ( "!" | "-" ) unary
+			   | primary ;
+primary        → NUMBER | STRING | "false" | "true" | "nil"
+			   | "(" expression ")" ;
+*/
+
+func (p *Parser) statement() (ast.Stmt, error) {
+	if p.match(token.Tprint) {
+		return p.printStatement()
+	}
+	return p.exprStatement()
+}
+
+func (p *Parser) printStatement() (ast.Stmt, error) {
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	err = p.consume(token.Tsemicolon, "Expected semicolon")
+	if err != nil {
+		return nil, err
+	}
+	return ast.Sprint{Expression: expr}, nil
+}
+
+func (p *Parser) exprStatement() (ast.Stmt, error) {
+	expr, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	err = p.consume(token.Tsemicolon, "Expected semicolon")
+	if err != nil {
+		return nil, err
+	}
+	return ast.Sexpression{Expression: expr}, nil
+}
+
+func (p *Parser) expression() (ast.Expr, error) {
 	return p.equality()
 }
 
@@ -99,20 +170,6 @@ func (p *Parser) multiplication() (ast.Expr, error) {
 	return expr, nil
 }
 
-/*
-Grammar
-
-expression     → equality ;
-equality       → comparison ( ( "!=" | "==" ) comparison )* ;
-comparison     → addition ( ( ">" | ">=" | "<" | "<=" ) addition )* ;
-addition       → multiplication ( ( "-" | "+" ) multiplication )* ;
-multiplication → unary ( ( "/" | "*" ) unary )* ;
-unary          → ( "!" | "-" ) unary
-			   | primary ;
-primary        → NUMBER | STRING | "false" | "true" | "nil"
-			   | "(" expression ")" ;
-*/
-
 func (p *Parser) unary() (ast.Expr, error) {
 	if p.match(token.Tbang, token.Tminus) {
 		op := p.previous()
@@ -141,7 +198,7 @@ func (p *Parser) primary() (ast.Expr, error) {
 	}
 
 	if p.match(token.TleftParen) {
-		expr, err := p.experssion()
+		expr, err := p.expression()
 		if err != nil {
 			return nil, err
 		}
@@ -156,18 +213,18 @@ func (p *Parser) primary() (ast.Expr, error) {
 }
 
 func (p *Parser) consume(token token.TokenType, message string) error {
-	if p.peek().Type == token {
+	if p.check(token) {
 		p.advance()
+		return nil
 	}
 	return p.err(p.peek(), message)
 }
 
 func (p *Parser) err(tok token.Token, message string) error {
-	log.Printf("error at line %d", tok.Line)
-	if p.ErrorHandler != nil {
-		p.ErrorHandler(tok, message)
-	}
-	return errors.New(message)
+	log.Printf("error at line %d %v: %s", tok.Line, tok, message)
+	// XXX: Should this be here? Putting here to avoid the double semicolon infinte loop
+	p.advance()
+	return parserError{errors.New(message), tok}
 }
 
 func (p *Parser) check(tt token.TokenType) bool {
@@ -179,7 +236,7 @@ func (p *Parser) check(tt token.TokenType) bool {
 
 func (p *Parser) match(tts ...token.TokenType) bool {
 	for _, tokenType := range tts {
-		if p.peek().Type == tokenType {
+		if p.check(tokenType) {
 			p.advance()
 			return true
 		}
@@ -206,5 +263,10 @@ func (p *Parser) isAtEnd() bool {
 }
 
 func (p *Parser) advance() {
+	// XXX: this is here so that when advance is called from err
+	// it doesnt go out of bounds. Check with the book
+	if p.isAtEnd() {
+		return
+	}
 	p.current++
 }
