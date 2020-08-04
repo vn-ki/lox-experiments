@@ -54,7 +54,10 @@ declaration → varDecl
             | statement ;
 
 statement   → exprStmt
-            | printStmt ;
+            | printStmt
+			| block ;
+
+block  -> "{" declaration* "}";
 
 varDecl → "var" IDENTIFIER ( "=" expression )? ";" ;
 
@@ -105,7 +108,22 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	if p.match(token.Tprint) {
 		return p.printStatement()
 	}
+	if p.match(token.TleftBrace) {
+		return p.block()
+	}
 	return p.exprStatement()
+}
+
+func (p *Parser) block() (ast.Stmt, error) {
+	stmts := make([]ast.Stmt, 0)
+	for !p.check(token.TrightBrace) {
+		stmt, err := p.declaration()
+		if err != nil {
+			return nil, err
+		}
+		stmts = append(stmts, stmt)
+	}
+	return ast.Sblock{Stmts: stmts}, p.consume(token.TrightBrace, "Expected closing brace")
 }
 
 func (p *Parser) printStatement() (ast.Stmt, error) {
@@ -279,8 +297,6 @@ func (p *Parser) consume(token token.TokenType, message string) error {
 
 func (p *Parser) err(tok token.Token, message string) error {
 	log.Printf("error at line %d %v: %s", tok.Line, tok, message)
-	// XXX: Should this be here? Putting here to avoid the double semicolon infinte loop
-	p.advance()
 	return parserError{errors.New(message), tok}
 }
 

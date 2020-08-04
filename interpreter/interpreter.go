@@ -21,7 +21,7 @@ type runtimeError struct {
 }
 
 func NewInterpreter() Interpreter {
-	return Interpreter{nil, env.NewEnvironment()}
+	return Interpreter{nil, env.NewEnvironment(nil)}
 }
 
 func (i Interpreter) Evaluate(e ast.Expr) interface{} {
@@ -80,6 +80,17 @@ func (i Interpreter) VisitPrint(s ast.Sprint) interface{} {
 	return nil
 }
 
+func (i Interpreter) VisitBlock(s ast.Sblock) interface{} {
+	prevEnv := i.env
+	i.env = env.NewEnvironment(i.env)
+
+	for _, stmt := range s.Stmts {
+		stmt.Accept(i)
+	}
+	i.env = prevEnv
+	return nil
+}
+
 func (i Interpreter) checkNumberOperand(op token.Token, operand interface{}) {
 	if _, ok := operand.(float64); !ok {
 		panic(runtimeError{errors.New("the operand should be a number"), op})
@@ -95,9 +106,7 @@ func (i Interpreter) checkNumberOperands(op token.Token, left interface{}, right
 	panic(runtimeError{errors.New("both operands should be number"), op})
 }
 func (i Interpreter) VisitAssign(e ast.Eassign) interface{} {
-	_, ok := i.env.Get(e.Name.Lexeme)
-	if ok {
-		i.env.Define(e.Name.Lexeme, e.Value)
+	if i.env.Assign(e.Name.Lexeme, e.Value) {
 		return e.Value
 	}
 	panic(runtimeError{errors.New("Undefined variable"), e.Name})

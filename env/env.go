@@ -1,11 +1,12 @@
 package env
 
 type Environemnt struct {
-	values map[string]interface{}
+	values    map[string]interface{}
+	Enclosing *Environemnt
 }
 
-func NewEnvironment() *Environemnt {
-	return &Environemnt{make(map[string]interface{})}
+func NewEnvironment(enclosing *Environemnt) *Environemnt {
+	return &Environemnt{make(map[string]interface{}), enclosing}
 }
 
 func (e *Environemnt) Define(key string, val interface{}) {
@@ -14,5 +15,19 @@ func (e *Environemnt) Define(key string, val interface{}) {
 
 func (e *Environemnt) Get(key string) (interface{}, bool) {
 	val, ok := e.values[key]
+	if !ok && e.Enclosing != nil {
+		return e.Enclosing.Get(key)
+	}
 	return val, ok
+}
+
+func (e *Environemnt) Assign(key string, value interface{}) bool {
+	_, ok := e.Get(key)
+	if ok {
+		e.Define(key, value)
+	} else if e.Enclosing != nil {
+		ok = e.Enclosing.Assign(key, value)
+	}
+
+	return ok
 }
