@@ -46,6 +46,10 @@ func (a AstPrinter) VisitUnary(e Unary) interface{} {
 	return a.parenthesize(e.Op.Lexeme, e.Right)
 }
 
+func (a AstPrinter) VisitAssign(e Eassign) interface{} {
+	return a.parenthesize("assign "+e.Name.Lexeme, e.Value)
+}
+
 func (a AstPrinter) VisitLiteral(e Literal) interface{} {
 	if e.Value == nil {
 		return "nil"

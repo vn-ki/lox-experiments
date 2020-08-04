@@ -94,6 +94,14 @@ func (i Interpreter) checkNumberOperands(op token.Token, left interface{}, right
 	}
 	panic(runtimeError{errors.New("both operands should be number"), op})
 }
+func (i Interpreter) VisitAssign(e ast.Eassign) interface{} {
+	_, ok := i.env.Get(e.Name.Lexeme)
+	if ok {
+		i.env.Define(e.Name.Lexeme, e.Value)
+		return e.Value
+	}
+	panic(runtimeError{errors.New("Undefined variable"), e.Name})
+}
 
 func (i Interpreter) VisitLiteral(e ast.Literal) interface{} {
 	return e.Value

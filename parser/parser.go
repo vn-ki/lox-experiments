@@ -34,6 +34,7 @@ func (p *Parser) Parse() ([]ast.Stmt, bool) {
 				if p.ErrorHandler != nil {
 					p.ErrorHandler(w.tok, w.Error())
 				}
+				p.synchorize()
 			} else {
 				panic(err)
 			}
@@ -60,7 +61,8 @@ varDecl → "var" IDENTIFIER ( "=" expression )? ";" ;
 exprStmt  → expression ";" ;
 printStmt → "print" expression ";" ;
 
-expression     → equality ;
+expression     → assignment ;
+assignment -> equality | IDENTIFIER "=" assignment ;
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → addition ( ( ">" | ">=" | "<" | "<=" ) addition )* ;
 addition       → multiplication ( ( "-" | "+" ) multiplication )* ;
@@ -131,7 +133,26 @@ func (p *Parser) exprStatement() (ast.Stmt, error) {
 }
 
 func (p *Parser) expression() (ast.Expr, error) {
-	return p.equality()
+	return p.assignment()
+}
+
+func (p *Parser) assignment() (ast.Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.match(token.Tequal) {
+		if w, ok := expr.(ast.Evariable); ok {
+			rval, err := p.assignment()
+			if err != nil {
+				return nil, err
+			}
+			return ast.Eassign{Name: w.Name, Value: rval}, nil
+		}
+		return nil, p.err(p.previous(), "lvalue of assignment is wrong")
+	}
+	return expr, nil
 }
 
 func (p *Parser) equality() (ast.Expr, error) {
@@ -305,4 +326,27 @@ func (p *Parser) advance() {
 		return
 	}
 	p.current++
+}
+
+func (p *Parser) synchorize() {
+	p.advance()
+
+	for !p.isAtEnd() {
+		if p.previous().Type == token.Tsemicolon {
+			return
+		}
+
+		switch p.peek().Type {
+		case token.Tclass:
+		case token.Tfun:
+		case token.Tvar:
+		case token.Tfor:
+		case token.Tif:
+		case token.Twhile:
+		case token.Tprint:
+		case token.Treturn:
+			return
+		}
+		p.advance()
+	}
 }
