@@ -24,7 +24,7 @@ func logTokens(tokens []token.Token) {
 	}
 }
 
-func run(src string, interp interpreter.Interpreter) error {
+func run(src string, interp *interpreter.Interpreter) error {
 	log.Printf("src: '%s'\n", src)
 	lexer := lexer.NewLexer(src)
 	tokens := lexer.ScanTokens()

@@ -20,15 +20,15 @@ type runtimeError struct {
 	token token.Token
 }
 
-func NewInterpreter() Interpreter {
-	return Interpreter{nil, env.NewEnvironment(nil)}
+func NewInterpreter() *Interpreter {
+	return &Interpreter{nil, env.NewEnvironment(nil)}
 }
 
-func (i Interpreter) Evaluate(e ast.Expr) interface{} {
+func (i *Interpreter) Evaluate(e ast.Expr) interface{} {
 	return e.Accept(i)
 }
 
-func (i Interpreter) Interpret(stmts []ast.Stmt) {
+func (i *Interpreter) Interpret(stmts []ast.Stmt) {
 	defer func() {
 		if r := recover(); r != nil {
 			if re, ok := r.(runtimeError); ok {
@@ -48,15 +48,15 @@ func (i Interpreter) Interpret(stmts []ast.Stmt) {
 	}
 }
 
-func (i Interpreter) execute(s ast.Stmt) {
+func (i *Interpreter) execute(s ast.Stmt) {
 	s.Accept(i)
 }
 
-func (i Interpreter) VisitExpression(s ast.Sexpression) interface{} {
+func (i *Interpreter) VisitExpression(s ast.Sexpression) interface{} {
 	return i.Evaluate(s.Expression)
 }
 
-func (i Interpreter) VisitVariable(v ast.Evariable) interface{} {
+func (i *Interpreter) VisitVariable(v ast.Evariable) interface{} {
 	val, ok := i.env.Get(v.Name.Lexeme)
 	if !ok {
 		panic(runtimeError{
@@ -67,7 +67,7 @@ func (i Interpreter) VisitVariable(v ast.Evariable) interface{} {
 	return val
 }
 
-func (i Interpreter) VisitVar(v ast.Svar) interface{} {
+func (i *Interpreter) VisitVar(v ast.Svar) interface{} {
 	var val interface{}
 	if v.Expression != nil {
 		val = i.Evaluate(v.Expression)
@@ -77,7 +77,14 @@ func (i Interpreter) VisitVar(v ast.Svar) interface{} {
 	return nil
 }
 
-func (i Interpreter) VisitIf(s ast.Sif) interface{} {
+func (i *Interpreter) VisitWhile(s ast.Swhile) interface{} {
+	for i.isTruthy(i.Evaluate(s.Condition)) {
+		i.execute(s.Body)
+	}
+	return nil
+}
+
+func (i *Interpreter) VisitIf(s ast.Sif) interface{} {
 	cond := i.Evaluate(s.Condition)
 	if i.isTruthy(cond) {
 		i.execute(s.ThenBranch)
@@ -87,13 +94,13 @@ func (i Interpreter) VisitIf(s ast.Sif) interface{} {
 	return nil
 }
 
-func (i Interpreter) VisitPrint(s ast.Sprint) interface{} {
+func (i *Interpreter) VisitPrint(s ast.Sprint) interface{} {
 	val := i.Evaluate(s.Expression)
 	fmt.Println(val)
 	return nil
 }
 
-func (i Interpreter) VisitBlock(s ast.Sblock) interface{} {
+func (i *Interpreter) VisitBlock(s ast.Sblock) interface{} {
 	prevEnv := i.env
 	i.env = env.NewEnvironment(i.env)
 
@@ -104,13 +111,13 @@ func (i Interpreter) VisitBlock(s ast.Sblock) interface{} {
 	return nil
 }
 
-func (i Interpreter) checkNumberOperand(op token.Token, operand interface{}) {
+func (i *Interpreter) checkNumberOperand(op token.Token, operand interface{}) {
 	if _, ok := operand.(float64); !ok {
 		panic(runtimeError{errors.New("the operand should be a number"), op})
 	}
 }
 
-func (i Interpreter) checkNumberOperands(op token.Token, left interface{}, right interface{}) {
+func (i *Interpreter) checkNumberOperands(op token.Token, left interface{}, right interface{}) {
 	if _, ok := left.(float64); ok {
 		if _, ok := right.(float64); ok {
 			return
@@ -118,22 +125,24 @@ func (i Interpreter) checkNumberOperands(op token.Token, left interface{}, right
 	}
 	panic(runtimeError{errors.New("both operands should be number"), op})
 }
-func (i Interpreter) VisitAssign(e ast.Eassign) interface{} {
-	if i.env.Assign(e.Name.Lexeme, e.Value) {
+
+func (i *Interpreter) VisitAssign(e ast.Eassign) interface{} {
+	if i.env.Assign(e.Name.Lexeme, i.Evaluate(e.Value)) {
+		// i.env.DumpEnv(0)
 		return e.Value
 	}
 	panic(runtimeError{errors.New("Undefined variable"), e.Name})
 }
 
-func (i Interpreter) VisitLiteral(e ast.Literal) interface{} {
+func (i *Interpreter) VisitLiteral(e ast.Literal) interface{} {
 	return e.Value
 }
 
-func (i Interpreter) VisitGrouping(e ast.Grouping) interface{} {
+func (i *Interpreter) VisitGrouping(e ast.Grouping) interface{} {
 	return i.Evaluate(e.Expression)
 }
 
-func (i Interpreter) VisitUnary(e ast.Unary) interface{} {
+func (i *Interpreter) VisitUnary(e ast.Unary) interface{} {
 	right := i.Evaluate(e.Right)
 
 	switch e.Op.Type {
@@ -147,7 +156,7 @@ func (i Interpreter) VisitUnary(e ast.Unary) interface{} {
 	panic("Unreachable")
 }
 
-func (i Interpreter) VisitLogical(e ast.Elogical) interface{} {
+func (i *Interpreter) VisitLogical(e ast.Elogical) interface{} {
 	left := i.Evaluate(e.Left)
 	switch e.Op.Type {
 	case token.Tand:
@@ -162,7 +171,7 @@ func (i Interpreter) VisitLogical(e ast.Elogical) interface{} {
 	return i.Evaluate(e.Right)
 }
 
-func (i Interpreter) VisitBinary(e ast.Binary) interface{} {
+func (i *Interpreter) VisitBinary(e ast.Binary) interface{} {
 	right := i.Evaluate(e.Right)
 	left := i.Evaluate(e.Left)
 
@@ -210,7 +219,7 @@ func (i Interpreter) VisitBinary(e ast.Binary) interface{} {
 	panic("All operators must be one of the above")
 }
 
-func (i Interpreter) isTruthy(e interface{}) bool {
+func (i *Interpreter) isTruthy(e interface{}) bool {
 	switch v := e.(type) {
 	case nil:
 		return false

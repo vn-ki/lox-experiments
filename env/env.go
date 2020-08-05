@@ -1,5 +1,10 @@
 package env
 
+import (
+	"log"
+	"strings"
+)
+
 type Environemnt struct {
 	values    map[string]interface{}
 	Enclosing *Environemnt
@@ -22,7 +27,7 @@ func (e *Environemnt) Get(key string) (interface{}, bool) {
 }
 
 func (e *Environemnt) Assign(key string, value interface{}) bool {
-	_, ok := e.Get(key)
+	_, ok := e.values[key]
 	if ok {
 		e.Define(key, value)
 	} else if e.Enclosing != nil {
@@ -30,4 +35,11 @@ func (e *Environemnt) Assign(key string, value interface{}) bool {
 	}
 
 	return ok
+}
+
+func (e *Environemnt) DumpEnv(depth int) {
+	log.Printf(strings.Repeat(">", depth)+"env: %v\n", e.values)
+	if e.Enclosing != nil {
+		e.Enclosing.DumpEnv(depth + 1)
+	}
 }

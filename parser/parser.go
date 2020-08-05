@@ -56,9 +56,12 @@ declaration → varDecl
 statement   → exprStmt
 			| ifStmt
             | printStmt
+			| whileStmt
 			| block ;
 
 ifStmt -> "if" "(" expression ")" statement ( "else" statement )? ;
+
+whileStmt -> "while" "(" expression ")" statement;
 
 block  -> "{" declaration* "}";
 
@@ -117,10 +120,25 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	if p.match(token.Tif) {
 		return p.ifStmt()
 	}
+	if p.match(token.Twhile) {
+		return p.whileStmt()
+	}
 	if p.match(token.TleftBrace) {
 		return p.block()
 	}
 	return p.exprStatement()
+}
+
+func (p *Parser) whileStmt() (ast.Stmt, error) {
+	p.consume(token.TleftParen, "Expected ( before expression")
+	cond, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	p.consume(token.TrightParen, "Expected ) after expression")
+
+	body, err := p.statement()
+	return ast.Swhile{Body: body, Condition: cond}, err
 }
 
 func (p *Parser) ifStmt() (ast.Stmt, error) {

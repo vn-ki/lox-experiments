@@ -12,6 +12,7 @@ type StmtVisitor interface {
 	VisitVar(Svar) interface{}
 	VisitBlock(Sblock) interface{}
 	VisitIf(Sif) interface{}
+	VisitWhile(Swhile) interface{}
 }
 
 type Sexpression struct {
@@ -37,8 +38,14 @@ type Sif struct {
 	Condition  Expr
 }
 
+type Swhile struct {
+	Condition Expr
+	Body      Stmt
+}
+
 func (t Sexpression) Accept(s StmtVisitor) interface{} { return s.VisitExpression(t) }
 func (t Sprint) Accept(s StmtVisitor) interface{}      { return s.VisitPrint(t) }
 func (t Svar) Accept(s StmtVisitor) interface{}        { return s.VisitVar(t) }
 func (t Sblock) Accept(s StmtVisitor) interface{}      { return s.VisitBlock(t) }
 func (t Sif) Accept(s StmtVisitor) interface{}         { return s.VisitIf(t) }
+func (t Swhile) Accept(s StmtVisitor) interface{}      { return s.VisitWhile(t) }

@@ -28,6 +28,10 @@ func (a *AstPrinter) VisitIf(s Sif) interface{} {
 	return fmt.Sprintf("(if %s then %s)", a.PrintExpr(s.Condition), a.PrintStatement(s.ThenBranch))
 }
 
+func (a *AstPrinter) VisitWhile(s Swhile) interface{} {
+	return fmt.Sprintf("(while %s then %s)", a.PrintExpr(s.Condition), a.PrintStatement(s.Body))
+}
+
 func (a *AstPrinter) VisitPrint(s Sprint) interface{} {
 	return a.parenthesize("print", s.Expression)
 }
