@@ -68,9 +68,22 @@ func (i Interpreter) VisitVariable(v ast.Evariable) interface{} {
 }
 
 func (i Interpreter) VisitVar(v ast.Svar) interface{} {
-	val := i.Evaluate(v.Expression)
+	var val interface{}
+	if v.Expression != nil {
+		val = i.Evaluate(v.Expression)
+	}
 	log.Printf("defining '%s' with '%v'", v.Name.Lexeme, val)
 	i.env.Define(v.Name.Lexeme, val)
+	return nil
+}
+
+func (i Interpreter) VisitIf(s ast.Sif) interface{} {
+	cond := i.Evaluate(s.Condition)
+	if i.isTruthy(cond) {
+		i.execute(s.ThenBranch)
+	} else {
+		i.execute(s.ElseBranch)
+	}
 	return nil
 }
 

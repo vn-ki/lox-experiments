@@ -54,8 +54,11 @@ declaration → varDecl
             | statement ;
 
 statement   → exprStmt
+			| ifStmt
             | printStmt
 			| block ;
+
+ifStmt -> "if" "(" expression ")" statement ( "else" statement )? ;
 
 block  -> "{" declaration* "}";
 
@@ -108,10 +111,38 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	if p.match(token.Tprint) {
 		return p.printStatement()
 	}
+	if p.match(token.Tif) {
+		return p.ifStmt()
+	}
 	if p.match(token.TleftBrace) {
 		return p.block()
 	}
 	return p.exprStatement()
+}
+
+func (p *Parser) ifStmt() (ast.Stmt, error) {
+	p.consume(token.TleftParen, "Expected ( before expression")
+
+	cond, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+
+	p.consume(token.TrightParen, "Expected ) after expression")
+
+	thenBranch, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	var elseBranch ast.Stmt
+	if p.match(token.Telse) {
+		elseBranch, err = p.statement()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return ast.Sif{ThenBranch: thenBranch, ElseBranch: elseBranch, Condition: cond}, nil
 }
 
 func (p *Parser) block() (ast.Stmt, error) {

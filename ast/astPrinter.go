@@ -18,6 +18,16 @@ func (a *AstPrinter) PrintStatement(s Stmt) string {
 	return s.Accept(a).(string)
 }
 
+func (a *AstPrinter) VisitIf(s Sif) interface{} {
+	if s.ElseBranch != nil {
+		return fmt.Sprintf(
+			"(if %s then %s else %s)",
+			a.PrintExpr(s.Condition), a.PrintStatement(s.ThenBranch), a.PrintStatement(s.ElseBranch),
+		)
+	}
+	return fmt.Sprintf("(if %s then %s)", a.PrintExpr(s.Condition), a.PrintStatement(s.ThenBranch))
+}
+
 func (a *AstPrinter) VisitPrint(s Sprint) interface{} {
 	return a.parenthesize("print", s.Expression)
 }
@@ -26,6 +36,9 @@ func (a *AstPrinter) VisitExpression(s Sexpression) interface{} {
 }
 
 func (a *AstPrinter) VisitVar(s Svar) interface{} {
+	if s.Expression == nil {
+		return a.parenthesize("var " + s.Name.Lexeme)
+	}
 	return a.parenthesize("var "+s.Name.Lexeme, s.Expression)
 }
 
