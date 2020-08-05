@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 
@@ -48,7 +49,12 @@ func run(src string, interp interpreter.Interpreter) error {
 }
 
 func runFile(path string) {
-
+	interp := interpreter.NewInterpreter()
+	src, err := ioutil.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+	run(string(src), interp)
 }
 
 func runREPL() {
@@ -77,6 +83,7 @@ func main() {
 		return
 	} else if argsLen == 2 {
 		//
+		runFile(os.Args[1])
 	} else {
 		//
 		log.Println("repl")

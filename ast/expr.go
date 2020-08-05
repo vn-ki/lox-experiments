@@ -13,6 +13,7 @@ type ExprVisitor interface {
 	VisitUnary(Unary) interface{}
 	VisitVariable(Evariable) interface{}
 	VisitAssign(Eassign) interface{}
+	VisitLogical(Elogical) interface{}
 }
 
 type Binary struct {
@@ -43,9 +44,16 @@ type Eassign struct {
 	Value Expr
 }
 
+type Elogical struct {
+	Left  Expr
+	Op    token.Token
+	Right Expr
+}
+
 func (b Binary) Accept(e ExprVisitor) interface{}    { return e.VisitBinary(b) }
 func (g Grouping) Accept(e ExprVisitor) interface{}  { return e.VisitGrouping(g) }
 func (l Literal) Accept(e ExprVisitor) interface{}   { return e.VisitLiteral(l) }
 func (u Unary) Accept(e ExprVisitor) interface{}     { return e.VisitUnary(u) }
 func (u Evariable) Accept(e ExprVisitor) interface{} { return e.VisitVariable(u) }
 func (u Eassign) Accept(e ExprVisitor) interface{}   { return e.VisitAssign(u) }
+func (u Elogical) Accept(e ExprVisitor) interface{}  { return e.VisitLogical(u) }

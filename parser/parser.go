@@ -68,7 +68,10 @@ exprStmt  → expression ";" ;
 printStmt → "print" expression ";" ;
 
 expression     → assignment ;
-assignment -> equality | IDENTIFIER "=" assignment ;
+assignment -> IDENTIFIER "=" assignment
+			| logic_or;
+logic_or -> logic_and ("or" logic_and)* ;
+logic_and -> equality ("and" equality)* ;
 equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 comparison     → addition ( ( ">" | ">=" | "<" | "<=" ) addition )* ;
 addition       → multiplication ( ( "-" | "+" ) multiplication )* ;
@@ -186,7 +189,7 @@ func (p *Parser) expression() (ast.Expr, error) {
 }
 
 func (p *Parser) assignment() (ast.Expr, error) {
-	expr, err := p.equality()
+	expr, err := p.logic_or()
 	if err != nil {
 		return nil, err
 	}
@@ -200,6 +203,40 @@ func (p *Parser) assignment() (ast.Expr, error) {
 			return ast.Eassign{Name: w.Name, Value: rval}, nil
 		}
 		return nil, p.err(p.previous(), "lvalue of assignment is wrong")
+	}
+	return expr, nil
+}
+
+func (p *Parser) logic_or() (ast.Expr, error) {
+	expr, err := p.logic_and()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(token.Tor) {
+		op := p.previous()
+		right, err := p.logic_and()
+		if err != nil {
+			return nil, err
+		}
+		expr = ast.Elogical{Left: expr, Op: op, Right: right}
+	}
+	return expr, nil
+}
+
+func (p *Parser) logic_and() (ast.Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(token.Tand) {
+		op := p.previous()
+		right, err := p.equality()
+		if err != nil {
+			return nil, err
+		}
+		expr = ast.Elogical{Left: expr, Op: op, Right: right}
 	}
 	return expr, nil
 }

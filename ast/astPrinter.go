@@ -87,6 +87,10 @@ func (a *AstPrinter) VisitGrouping(e Grouping) interface{} {
 	return a.parenthesize("group", e.Expression)
 }
 
+func (a *AstPrinter) VisitLogical(e Elogical) interface{} {
+	return a.parenthesize(e.Op.Lexeme, e.Left, e.Right)
+}
+
 func (a *AstPrinter) parenthesize(name string, exprs ...Expr) string {
 	ret := []string{"(", name}
 	for _, expr := range exprs {

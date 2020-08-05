@@ -147,6 +147,21 @@ func (i Interpreter) VisitUnary(e ast.Unary) interface{} {
 	panic("Unreachable")
 }
 
+func (i Interpreter) VisitLogical(e ast.Elogical) interface{} {
+	left := i.Evaluate(e.Left)
+	switch e.Op.Type {
+	case token.Tand:
+		if !i.isTruthy(left) {
+			return left
+		}
+	case token.Tfalse:
+		if i.isTruthy(left) {
+			return left
+		}
+	}
+	return i.Evaluate(e.Right)
+}
+
 func (i Interpreter) VisitBinary(e ast.Binary) interface{} {
 	right := i.Evaluate(e.Right)
 	left := i.Evaluate(e.Left)
