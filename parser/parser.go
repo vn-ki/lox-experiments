@@ -57,7 +57,12 @@ statement   → exprStmt
 			| ifStmt
             | printStmt
 			| whileStmt
+			| forStmt
 			| block ;
+
+forStmt -> "for" "(" (varDecl | exprStmt | ";")
+					expression? ;
+					expression? ")" statement ;
 
 ifStmt -> "if" "(" expression ")" statement ( "else" statement )? ;
 
@@ -123,10 +128,68 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	if p.match(token.Twhile) {
 		return p.whileStmt()
 	}
+	if p.match(token.Tfor) {
+		return p.forStmt()
+	}
 	if p.match(token.TleftBrace) {
 		return p.block()
 	}
 	return p.exprStatement()
+}
+
+func (p *Parser) forStmt() (ast.Stmt, error) {
+	var initializer ast.Stmt
+	var err error
+
+	p.consume(token.TleftParen, "Expected ( before expression")
+	if p.match(token.Tsemicolon) {
+	} else if p.match(token.Tvar) {
+		initializer, err = p.varDecl()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		initializer, err = p.exprStatement()
+		if err != nil {
+			return nil, err
+		}
+	}
+	// initializer done
+
+	// condition check
+	var cond ast.Expr
+	if !p.match(token.Tsemicolon) {
+		cond, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	p.consume(token.Tsemicolon, "expected semicolon after loop condition")
+
+	// increment
+	var increment ast.Expr
+	if !p.match(token.TrightParen) {
+		increment, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	p.consume(token.TrightParen, "Expected ) after loop")
+
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	whileStmt := ast.Swhile{
+		Condition: cond,
+		Body:      ast.Sblock{Stmts: []ast.Stmt{body, ast.Sexpression{Expression: increment}}},
+	}
+
+	if initializer != nil {
+		return ast.Sblock{Stmts: []ast.Stmt{initializer, whileStmt}}, nil
+	}
+	return whileStmt, nil
 }
 
 func (p *Parser) whileStmt() (ast.Stmt, error) {
