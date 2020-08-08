@@ -64,6 +64,10 @@ func (a *AstPrinter) PrintExpr(e Expr) string {
 	return e.Accept(a).(string)
 }
 
+func (a *AstPrinter) VisitCall(e Ecall) interface{} {
+	return a.parenthesize("call "+a.PrintExpr(e.Callee), e.Args...)
+}
+
 func (a *AstPrinter) VisitVariable(e Evariable) interface{} {
 	return a.parenthesize("variable " + e.Name.Lexeme)
 }

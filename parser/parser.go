@@ -51,7 +51,12 @@ Grammar
 program     → declaration* EOF ;
 
 declaration → varDecl
-            | statement ;
+			| funcDecl
+			| statement ;
+
+funcDecl -> "fun" function;
+function -> IDENTIFIER "(" parameters? ")" block ;
+parameters -> IDENTIFIER ( "," IDENTIFIER )* ;
 
 statement   → exprStmt
 			| ifStmt
@@ -85,7 +90,10 @@ comparison     → addition ( ( ">" | ">=" | "<" | "<=" ) addition )* ;
 addition       → multiplication ( ( "-" | "+" ) multiplication )* ;
 multiplication → unary ( ( "/" | "*" ) unary )* ;
 unary          → ( "!" | "-" ) unary
-			   | primary ;
+			   | call ;
+
+call -> primary ( "(" arguments? ")" )* ;
+arguments -> expression ("," expression)* ;
 primary        → NUMBER | STRING | "false" | "true" | "nil"
 			   | "(" expression ")"
 			   | IDENTIFIER;
@@ -400,7 +408,43 @@ func (p *Parser) unary() (ast.Expr, error) {
 		}
 		return ast.Unary{Op: op, Right: right}, nil
 	}
-	return p.primary()
+	return p.call()
+}
+
+func (p *Parser) call() (ast.Expr, error) {
+	expr, err := p.primary()
+	if err != nil {
+		return nil, err
+	}
+	for {
+		if p.match(token.TleftParen) {
+			expr, err = p.finishCall(expr)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			break
+		}
+	}
+	return expr, nil
+}
+
+func (p *Parser) finishCall(expr ast.Expr) (ast.Expr, error) {
+	args := make([]ast.Expr, 0)
+	if !p.check(token.TrightParen) {
+		for {
+			arg, err := p.expression()
+			if err != nil {
+				return nil, err
+			}
+			args = append(args, arg)
+			if !p.match(token.Tcomma) {
+				break
+			}
+		}
+	}
+	return ast.Ecall{Callee: expr, Paren: p.peek(), Args: args},
+		p.consume(token.TrightParen, "Expected ) after call")
 }
 
 func (p *Parser) primary() (ast.Expr, error) {

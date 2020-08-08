@@ -13,6 +13,7 @@ import (
 type Interpreter struct {
 	ErrorHandler func(token token.Token, msg string)
 	env          *env.Environemnt
+	globals      *env.Environemnt
 }
 
 type runtimeError struct {
@@ -21,7 +22,10 @@ type runtimeError struct {
 }
 
 func NewInterpreter() *Interpreter {
-	return &Interpreter{nil, env.NewEnvironment(nil)}
+	globals := env.NewEnvironment(nil)
+	globals.Define("clock", FnClock{})
+	globals.DumpEnv(0)
+	return &Interpreter{ErrorHandler: nil, env: globals, globals: globals}
 }
 
 func (i *Interpreter) Evaluate(e ast.Expr) interface{} {
@@ -54,6 +58,22 @@ func (i *Interpreter) execute(s ast.Stmt) {
 
 func (i *Interpreter) VisitExpression(s ast.Sexpression) interface{} {
 	return i.Evaluate(s.Expression)
+}
+
+func (i *Interpreter) VisitCall(c ast.Ecall) interface{} {
+	callee := i.Evaluate(c.Callee)
+	args := make([]interface{}, 0)
+	for _, arg := range c.Args {
+		args = append(args, i.Evaluate(arg))
+	}
+	if fun, ok := callee.(LoxCallable); ok {
+		if len(args) != fun.Arity() {
+			i.err("arity doesn't match", c.Paren)
+		}
+		return fun.Call(i, args)
+	}
+	i.err("not callable", c.Paren)
+	return nil
 }
 
 func (i *Interpreter) VisitVariable(v ast.Evariable) interface{} {
@@ -227,4 +247,8 @@ func (i *Interpreter) isTruthy(e interface{}) bool {
 		return v
 	}
 	return true
+}
+
+func (i *Interpreter) err(msg string, token token.Token) {
+	panic(runtimeError{errors.New(msg), token})
 }
