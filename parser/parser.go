@@ -103,7 +103,44 @@ func (p *Parser) declaration() (ast.Stmt, error) {
 	if p.match(token.Tvar) {
 		return p.varDecl()
 	}
+	if p.match(token.Tfun) {
+		return p.funcDecl()
+	}
 	return p.statement()
+}
+
+func (p *Parser) funcDecl() (ast.Stmt, error) {
+	if name := p.peek(); p.match(token.Tidentifier) {
+		err := p.consume(token.TleftParen, "expected ( after function name")
+		if err != nil {
+			return nil, err
+		}
+		params := make([]token.Token, 0)
+		if !p.match(token.TrightParen) {
+			for {
+				if p.check(token.Tidentifier) {
+					params = append(params, p.peek())
+					p.advance()
+				} else {
+					return nil, p.err(p.peek(), "expected identifier")
+				}
+				if !p.match(token.Tcomma) {
+					break
+				}
+			}
+			err = p.consume(token.TrightParen, "expected ) after parameters")
+			if err != nil {
+				return nil, err
+			}
+		}
+		p.consume(token.TleftBrace, "Expected { before body")
+		body, err := p.block()
+		if err != nil {
+			return nil, err
+		}
+		return ast.Sfunction{Name: name, Params: params, Body: body.(ast.Sblock).Stmts}, nil
+	}
+	return nil, p.err(p.peek(), "expected funciton indentifier")
 }
 
 func (p *Parser) varDecl() (ast.Stmt, error) {

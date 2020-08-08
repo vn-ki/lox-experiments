@@ -1,0 +1,23 @@
+// vim:ft=kotlin
+fun printHello() {
+    print "hello";
+}
+
+fun printSum(a, b) {
+    print a+b;
+}
+
+fun closureTest(a) {
+    fun closure(b) {
+        print a+b;
+    }
+    closure(1);
+    closure(2);
+}
+
+printHello();
+printSum(1, 2);
+closureTest(1);
+
+// this should error
+closure(1);

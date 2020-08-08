@@ -46,6 +46,10 @@ func (a *AstPrinter) VisitVar(s Svar) interface{} {
 	return a.parenthesize("var "+s.Name.Lexeme, s.Expression)
 }
 
+func (a *AstPrinter) VisitFunction(s Sfunction) interface{} {
+	return fmt.Sprintf("func %s %s", s.Name.Lexeme, a.parenthesizeStmts("body", s.Body...))
+}
+
 func (a *AstPrinter) VisitBlock(s Sblock) interface{} {
 	a.depth++
 	ret := make([]string, 0)
@@ -104,6 +108,16 @@ func (a *AstPrinter) parenthesize(name string, exprs ...Expr) string {
 	for _, expr := range exprs {
 		ret = append(ret, " ")
 		ret = append(ret, expr.Accept(a).(string))
+	}
+	ret = append(ret, ")")
+	return strings.Join(ret, "")
+}
+
+func (a *AstPrinter) parenthesizeStmts(name string, stmts ...Stmt) string {
+	ret := []string{"(", name}
+	for _, stmt := range stmts {
+		ret = append(ret, " ")
+		ret = append(ret, stmt.Accept(a).(string))
 	}
 	ret = append(ret, ")")
 	return strings.Join(ret, "")

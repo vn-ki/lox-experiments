@@ -24,7 +24,7 @@ type runtimeError struct {
 func NewInterpreter() *Interpreter {
 	globals := env.NewEnvironment(nil)
 	globals.Define("clock", FnClock{})
-	globals.DumpEnv(0)
+	globals.DumpEnv()
 	return &Interpreter{ErrorHandler: nil, env: globals, globals: globals}
 }
 
@@ -73,6 +73,13 @@ func (i *Interpreter) VisitCall(c ast.Ecall) interface{} {
 		return fun.Call(i, args)
 	}
 	i.err("not callable", c.Paren)
+	return nil
+}
+
+func (i *Interpreter) VisitFunction(f ast.Sfunction) interface{} {
+	log.Printf("getting defined %s\n", f.Name.Lexeme)
+	i.env.Define(f.Name.Lexeme, NewLoxFunctionFromAst(f))
+	i.env.DumpEnv()
 	return nil
 }
 

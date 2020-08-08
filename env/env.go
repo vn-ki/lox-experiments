@@ -37,9 +37,13 @@ func (e *Environemnt) Assign(key string, value interface{}) bool {
 	return ok
 }
 
-func (e *Environemnt) DumpEnv(depth int) {
+func (e *Environemnt) DumpEnv() {
+	e.dumpEnv(0)
+}
+
+func (e *Environemnt) dumpEnv(depth int) {
 	log.Printf(strings.Repeat(">", depth)+"env: %v\n", e.values)
 	if e.Enclosing != nil {
-		e.Enclosing.DumpEnv(depth + 1)
+		e.Enclosing.dumpEnv(depth + 1)
 	}
 }
