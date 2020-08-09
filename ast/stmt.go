@@ -14,6 +14,7 @@ type StmtVisitor interface {
 	VisitIf(Sif) interface{}
 	VisitWhile(Swhile) interface{}
 	VisitFunction(Sfunction) interface{}
+	VisitReturn(Sreturn) interface{}
 }
 
 type Sexpression struct {
@@ -50,6 +51,11 @@ type Sfunction struct {
 	Body   []Stmt
 }
 
+type Sreturn struct {
+	Value   Expr
+	Keyword token.Token
+}
+
 func (t Sexpression) Accept(s StmtVisitor) interface{} { return s.VisitExpression(t) }
 func (t Sprint) Accept(s StmtVisitor) interface{}      { return s.VisitPrint(t) }
 func (t Svar) Accept(s StmtVisitor) interface{}        { return s.VisitVar(t) }
@@ -57,3 +63,4 @@ func (t Sblock) Accept(s StmtVisitor) interface{}      { return s.VisitBlock(t) 
 func (t Sif) Accept(s StmtVisitor) interface{}         { return s.VisitIf(t) }
 func (t Swhile) Accept(s StmtVisitor) interface{}      { return s.VisitWhile(t) }
 func (t Sfunction) Accept(s StmtVisitor) interface{}   { return s.VisitFunction(t) }
+func (t Sreturn) Accept(s StmtVisitor) interface{}     { return s.VisitReturn(t) }

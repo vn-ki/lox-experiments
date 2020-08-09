@@ -18,6 +18,10 @@ func (a *AstPrinter) PrintStatement(s Stmt) string {
 	return s.Accept(a).(string)
 }
 
+func (a *AstPrinter) VisitReturn(s Sreturn) interface{} {
+	return a.parenthesize("return", s.Value)
+}
+
 func (a *AstPrinter) VisitIf(s Sif) interface{} {
 	if s.ElseBranch != nil {
 		return fmt.Sprintf(

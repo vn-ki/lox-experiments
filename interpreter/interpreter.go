@@ -20,6 +20,9 @@ type runtimeError struct {
 	error
 	token token.Token
 }
+type returnError struct {
+	Value interface{}
+}
 
 func NewInterpreter() *Interpreter {
 	globals := env.NewEnvironment(nil)
@@ -60,7 +63,7 @@ func (i *Interpreter) VisitExpression(s ast.Sexpression) interface{} {
 	return i.Evaluate(s.Expression)
 }
 
-func (i *Interpreter) VisitCall(c ast.Ecall) interface{} {
+func (i *Interpreter) VisitCall(c ast.Ecall) (returnVal interface{}) {
 	callee := i.Evaluate(c.Callee)
 	args := make([]interface{}, 0)
 	for _, arg := range c.Args {
@@ -70,10 +73,27 @@ func (i *Interpreter) VisitCall(c ast.Ecall) interface{} {
 		if len(args) != fun.Arity() {
 			i.err("arity doesn't match", c.Paren)
 		}
-		return fun.Call(i, args)
+		defer func() {
+			if r := recover(); r != nil {
+				if w, ok := r.(returnError); ok {
+					log.Printf("return value: %v\n", w.Value)
+					// assign the value to the named return value
+					returnVal = w.Value
+					return
+				} else {
+					panic(r)
+				}
+			}
+		}()
+		fun.Call(i, args)
+		return
 	}
 	i.err("not callable", c.Paren)
 	return nil
+}
+
+func (i *Interpreter) VisitReturn(r ast.Sreturn) interface{} {
+	panic(returnError{i.Evaluate(r.Value)})
 }
 
 func (i *Interpreter) VisitFunction(f ast.Sfunction) interface{} {

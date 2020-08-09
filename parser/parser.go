@@ -62,8 +62,11 @@ statement   → exprStmt
 			| ifStmt
             | printStmt
 			| whileStmt
+			| returnStmt
 			| forStmt
 			| block ;
+
+returnStmt -> RETURN expression? ";" ;
 
 forStmt -> "for" "(" (varDecl | exprStmt | ";")
 					expression? ;
@@ -179,7 +182,19 @@ func (p *Parser) statement() (ast.Stmt, error) {
 	if p.match(token.TleftBrace) {
 		return p.block()
 	}
+	if p.match(token.Treturn) {
+		return p.returnStmt()
+	}
 	return p.exprStatement()
+}
+
+func (p *Parser) returnStmt() (ast.Stmt, error) {
+	keyword := p.previous()
+	value, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	return ast.Sreturn{Value: value, Keyword: keyword}, p.consume(token.Tsemicolon, "Expected semicolon after return")
 }
 
 func (p *Parser) forStmt() (ast.Stmt, error) {
