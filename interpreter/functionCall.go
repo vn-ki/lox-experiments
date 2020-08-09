@@ -31,25 +31,22 @@ type LoxFunction struct {
 	Name   token.Token
 	Params []token.Token
 	Body   []ast.Stmt
+	Env    *env.Environemnt
 }
 
-func NewLoxFunctionFromAst(f ast.Sfunction) LoxFunction {
-	return LoxFunction{Name: f.Name, Params: f.Params, Body: f.Body}
+func NewLoxFunctionFromAst(f ast.Sfunction, env *env.Environemnt) LoxFunction {
+	return LoxFunction{Name: f.Name, Params: f.Params, Body: f.Body, Env: env}
 }
 
 func (f LoxFunction) Arity() int { return len(f.Params) }
 
 func (f LoxFunction) Call(i *Interpreter, args []interface{}) interface{} {
-	prev := i.env
-	defer func() { i.env = prev }()
-	i.env = env.NewEnvironment(prev)
+	env := env.NewEnvironment(f.Env)
 
 	for idx, arg := range args {
-		i.env.Define(f.Params[idx].Lexeme, arg)
+		env.Define(f.Params[idx].Lexeme, arg)
 	}
-	for _, stmt := range f.Body {
-		i.execute(stmt)
-	}
+	i.ExecuteBlock(f.Body, env)
 
 	return nil
 }

@@ -98,7 +98,7 @@ func (i *Interpreter) VisitReturn(r ast.Sreturn) interface{} {
 
 func (i *Interpreter) VisitFunction(f ast.Sfunction) interface{} {
 	log.Printf("getting defined %s\n", f.Name.Lexeme)
-	i.env.Define(f.Name.Lexeme, NewLoxFunctionFromAst(f))
+	i.env.Define(f.Name.Lexeme, NewLoxFunctionFromAst(f, i.env))
 	i.env.DumpEnv()
 	return nil
 }
@@ -148,14 +148,18 @@ func (i *Interpreter) VisitPrint(s ast.Sprint) interface{} {
 }
 
 func (i *Interpreter) VisitBlock(s ast.Sblock) interface{} {
-	prevEnv := i.env
-	i.env = env.NewEnvironment(i.env)
+	i.ExecuteBlock(s.Stmts, env.NewEnvironment(i.env))
+	return nil
+}
 
-	for _, stmt := range s.Stmts {
+func (i *Interpreter) ExecuteBlock(stmts []ast.Stmt, env *env.Environemnt) {
+	prevEnv := i.env
+	defer func() { i.env = prevEnv }()
+	i.env = env
+
+	for _, stmt := range stmts {
 		stmt.Accept(i)
 	}
-	i.env = prevEnv
-	return nil
 }
 
 func (i *Interpreter) checkNumberOperand(op token.Token, operand interface{}) {
