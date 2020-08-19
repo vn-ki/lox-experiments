@@ -36,3 +36,27 @@ func TestWhile(t *testing.T) {
 	//
 	// }
 }
+
+func TestRecursion(t *testing.T) {
+
+	src := `
+fun counter(a) {
+    if (a < 1) return nil;
+    counter(a-1);
+    print a;
+}
+
+counter(5);
+
+	`
+	stmts, _ := parse(src)
+	// got := ast.NewAstPrinter().PrintStatement(stmts[0])
+	// expected := "(- (1) (* (2) (3)))"
+
+	interp := NewInterpreter()
+	interp.Interpret(stmts)
+
+	// if got != expected {
+	//
+	// }
+}

@@ -76,7 +76,7 @@ func (i *Interpreter) VisitCall(c ast.Ecall) (returnVal interface{}) {
 		defer func() {
 			if r := recover(); r != nil {
 				if w, ok := r.(returnError); ok {
-					log.Printf("return value: %v\n", w.Value)
+					// log.Printf("return value: %v\n", w.Value)
 					// assign the value to the named return value
 					returnVal = w.Value
 					return
@@ -136,7 +136,9 @@ func (i *Interpreter) VisitIf(s ast.Sif) interface{} {
 	if i.isTruthy(cond) {
 		i.execute(s.ThenBranch)
 	} else {
-		i.execute(s.ElseBranch)
+		if s.ElseBranch != nil {
+			i.execute(s.ElseBranch)
+		}
 	}
 	return nil
 }

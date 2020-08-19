@@ -63,5 +63,5 @@ Notable differences from visitor pattern:
 - lesser functions in the visitor interface. So any future requirements which may change the function signature may not affect all visitor implementations. (that is custom requirements could be handled inside the visitor implementation itself)
 - No compile time guarentee that all types are handled. The visitor pattern guarentees this.
 - (In my opinion) lesser abstraction and easier to follow and understand. Visitor pattern has dual indirection, while this pattern only uses a switch.
-
+- Visitor pattern is considerably harder to track while debugging due to the double indirection.
 

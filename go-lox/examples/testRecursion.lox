@@ -1,0 +1,7 @@
+fun counter(a) {
+    if (a < 1) return nil;
+    counter(a-1);
+    print a;
+}
+
+counter(5);
